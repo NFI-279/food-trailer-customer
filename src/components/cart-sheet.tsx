@@ -53,7 +53,7 @@ export function CartSheet() {
       } else {
         toast.loading(t.cart.redirecting);
         // Ask the backend for the Stripe URL, and pass the current website URL so Stripe knows where to send them back!
-        const { url } = await api.getStripeUrl(order.id, window.location.origin);
+        const { url } = await api.getStripeUrl(order.id);
         window.location.href = url; // Redirect the browser to Stripe!
       }
 
