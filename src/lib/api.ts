@@ -39,11 +39,10 @@ export const api = {
     return res.json();
   },
 
-  getStripeUrl: async (orderId: string, customerAppUrl: string) => {
+  // Removed customerAppUrl parameter
+  getStripeUrl: async (orderId: string) => {
     const res = await fetch(`${API_URL}/orders/${orderId}/checkout`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ customerAppUrl }),
+      method: "POST", // We don't need a body anymore!
     });
     if (!res.ok) throw new Error("Failed to initialize payment");
     const data = await res.json();
