@@ -19,6 +19,7 @@ export function OrderTracker() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const isStripeSuccess = searchParams.get("success") === "true";
+  const isStripeCanceled = searchParams.get("canceled") === "true";
 
   const { data: order, isLoading } = useQuery({
     queryKey: ["order-status", activeOrderNumber],
@@ -32,22 +33,22 @@ export function OrderTracker() {
 
   // If the webhook finishes and the order becomes PENDING, we clean up the URL to remove ?success=true
   useEffect(() => {
+    if (isStripeCanceled && activeOrderNumber) {
+      // 1. Tell the backend to delete the UNPAID ghost order
+      api.cancelUnpaidOrder(activeOrderNumber).catch(console.error);
+      // 2. Wipe it from the customer's phone memory so they can try again
+      setActiveOrder(null);
+      // 3. Clean the URL
+      router.replace("/");
+    }
+  }, [isStripeCanceled, activeOrderNumber, router, setActiveOrder]);
+
+  // FIX: Stripe Success cleanup
+  useEffect(() => {
     if (isStripeSuccess && order && order.status !== "UNPAID") {
-      router.replace("/"); // Cleans the URL so it just says yourdomain.com
+      router.replace("/"); 
     }
   }, [isStripeSuccess, order, router]);
-
-  useEffect(() => {
-    if ((isReady || isCancelled) && order?.updatedAt) {
-      const completedTime = new Date(order.updatedAt).getTime();
-      const now = new Date().getTime();
-      const minutesPassed = (now - completedTime) / (1000 * 60);
-      
-      if (minutesPassed > 15) {
-        setActiveOrder(null);
-      }
-    }
-  }, [isReady, isCancelled, order?.updatedAt, setActiveOrder]);
 
   if (isLoading || !order) {
     return (
