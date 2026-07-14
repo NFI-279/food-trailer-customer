@@ -48,4 +48,13 @@ export const api = {
     const data = await res.json();
     return data;
   }
+
+  // NEW: Cancel abandoned Stripe order
+  cancelUnpaidOrder: async (orderNumber: string) => {
+    const res = await fetch(`${API_URL}/orders/cancel-unpaid/${orderNumber}`, {
+      method: "PATCH",
+    });
+    if (!res.ok) throw new Error("Failed to cancel unpaid order");
+    return res.json();
+  }
 };
