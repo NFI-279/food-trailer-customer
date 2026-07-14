@@ -1,8 +1,8 @@
 // [Frontend - Customer] src/components/order-tracker.tsx
 "use client";
 
-import { useEffect, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation"; // <-- NEW: To read the URL
+import { useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useCart } from "@/store/cart";
@@ -31,24 +31,34 @@ export function OrderTracker() {
   const isReady = order?.status === "COMPLETED";
   const isCancelled = order?.status === "CANCELLED";
 
-  // If the webhook finishes and the order becomes PENDING, we clean up the URL to remove ?success=true
+  // EFFECT 1: Stripe Canceled cleanup
   useEffect(() => {
     if (isStripeCanceled && activeOrderNumber) {
-      // 1. Tell the backend to delete the UNPAID ghost order
       api.cancelUnpaidOrder(activeOrderNumber).catch(console.error);
-      // 2. Wipe it from the customer's phone memory so they can try again
       setActiveOrder(null);
-      // 3. Clean the URL
       router.replace("/");
     }
   }, [isStripeCanceled, activeOrderNumber, router, setActiveOrder]);
 
-  // FIX: Stripe Success cleanup
+  // EFFECT 2: Stripe Success cleanup
   useEffect(() => {
     if (isStripeSuccess && order && order.status !== "UNPAID") {
       router.replace("/"); 
     }
   }, [isStripeSuccess, order, router]);
+
+  // EFFECT 3: Auto-clear finished orders after 15 minutes!
+  useEffect(() => {
+    if ((isReady || isCancelled) && order?.updatedAt) {
+      const completedTime = new Date(order.updatedAt).getTime();
+      const now = new Date().getTime();
+      const minutesPassed = (now - completedTime) / (1000 * 60);
+      
+      if (minutesPassed > 15) {
+        setActiveOrder(null);
+      }
+    }
+  }, [isReady, isCancelled, order?.updatedAt, setActiveOrder]);
 
   if (isLoading || !order) {
     return (
@@ -60,7 +70,6 @@ export function OrderTracker() {
   }
 
   // --- METICULOUS UX: The Stripe "Verifying" State ---
-  // If the database says UNPAID, but they just returned from Stripe, do NOT show the Cash screen!
   if (order.status === "UNPAID" && isStripeSuccess) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-indigo-500 transition-colors duration-500">
