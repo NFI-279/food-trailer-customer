@@ -13,7 +13,7 @@ import { CartSheet } from "@/components/cart-sheet";
 import { OrderTracker } from "@/components/order-tracker";
 
 export default function MobileMenu() {
-  const { addItem, activeOrderNumber } = useCart();
+  const { addItem, activeOrderId } = useCart();
   const { t, toggleLanguage, language } = useLanguage(); 
   
   // 1. Fetch Menu (Notice we rename isLoading to isMenuLoading)
@@ -30,7 +30,7 @@ export default function MobileMenu() {
   });
 
   // 3. Early Returns (Order Tracker, Loading, Error)
-  if (activeOrderNumber) {
+  if (activeOrderId) {
     return <OrderTracker />;
   }
 
