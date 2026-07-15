@@ -34,13 +34,12 @@ export function CartSheet() {
       }));
 
       const order = await api.placeOrder({
-        orderNumber: "GENERATED_BY_BACKEND", 
         totalAmount: totalPrice,
         items: formattedItems,
         paymentMethod: method, 
       });
 
-      setActiveOrder(order.orderNumber);
+      setActiveOrder(order.id);
       clearCart();
 
       if (method === "CASH") {

@@ -10,8 +10,8 @@ export interface CartItem extends MenuItem {
 
 interface CartStore {
   items: CartItem[];
-  activeOrderNumber: string | null;
-  setActiveOrder: (orderNumber: string | null) => void;
+  activeOrderId: string | null;
+  setActiveOrder: (id: string | null) => void;
   addItem: (item: MenuItem) => void; // Removed notes parameter
   removeItem: (cartItemId: string) => void;
   decreaseQuantity: (cartItemId: string) => void;
@@ -24,9 +24,9 @@ export const useCart = create<CartStore>()(
   persist(
     (set, get) => ({
       items: [],
-      activeOrderNumber: null,
+      activeOrderId: null,
       
-      setActiveOrder: (orderNumber) => set({ activeOrderNumber: orderNumber }),
+      setActiveOrder: (id) => set({ activeOrderId: id }),
 
       addItem: (item) => {
         set((state) => {

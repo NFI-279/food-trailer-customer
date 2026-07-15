@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { ChefHat, CheckCircle2, Loader2, Clock, XCircle, Banknote, ShieldCheck } from "lucide-react";
 
 function OrderTrackerContent() {
-  const { activeOrderNumber, setActiveOrder } = useCart();
+  const { activeOrderId, setActiveOrder } = useCart();
   const { t } = useLanguage();
   
   const searchParams = useSearchParams();
@@ -21,9 +21,9 @@ function OrderTrackerContent() {
   const isStripeCanceled = searchParams.get("canceled") === "true";
 
   const { data: order, isLoading } = useQuery({
-    queryKey: ["order-status", activeOrderNumber],
-    queryFn: () => api.getOrderStatus(activeOrderNumber!),
-    enabled: !!activeOrderNumber,
+    queryKey: ["order-status", activeOrderId],
+    queryFn: () => api.getOrderStatus(activeOrderId!),
+    enabled: !!activeOrderId,
     refetchInterval: 3000, 
   });
 
@@ -32,12 +32,12 @@ function OrderTrackerContent() {
 
   // EFFECT 1: Stripe Canceled cleanup
   useEffect(() => {
-    if (isStripeCanceled && activeOrderNumber) {
-      api.cancelUnpaidOrder(activeOrderNumber).catch(console.error);
+    if (isStripeCanceled && activeOrderId) {
+      api.cancelUnpaidOrder(activeOrderId).catch(console.error);
       setActiveOrder(null);
       router.replace("/");
     }
-  }, [isStripeCanceled, activeOrderNumber, router, setActiveOrder]);
+  }, [isStripeCanceled, activeOrderId, router, setActiveOrder]);
 
   // EFFECT 2: Stripe Success cleanup
   useEffect(() => {

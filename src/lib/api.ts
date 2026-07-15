@@ -28,8 +28,8 @@ export const api = {
   },
 
   // 3. Get Order Status
-  getOrderStatus: async (orderNumber: string) => {
-    const res = await fetch(`${API_URL}/orders/status/${orderNumber}`);
+  getOrderStatus: async (id: string) => {
+    const res = await fetch(`${API_URL}/orders/status/${id}`);
     if (!res.ok) throw new Error("Failed to fetch order status");
     const data = await res.json();
     return data;
@@ -54,8 +54,8 @@ export const api = {
   }, // <-- THIS COMMA WAS MISSING!
 
   // 6. Cancel abandoned Stripe order
-  cancelUnpaidOrder: async (orderNumber: string) => {
-    const res = await fetch(`${API_URL}/orders/cancel-unpaid/${orderNumber}`, {
+  cancelUnpaidOrder: async (id: string) => {
+    const res = await fetch(`${API_URL}/orders/${id}/cancel-unpaid`, {
       method: "PATCH",
     });
     if (!res.ok) throw new Error("Failed to cancel unpaid order");
