@@ -1,20 +1,18 @@
 // [Frontend - Customer] src/store/cart.ts
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware'; // <-- Import persist!
+import { persist } from 'zustand/middleware'; 
 import { MenuItem } from '@/types';
 
 export interface CartItem extends MenuItem {
   cartItemId: string; 
   quantity: number;
-  notes: string;
 }
 
 interface CartStore {
   items: CartItem[];
   activeOrderNumber: string | null;
   setActiveOrder: (orderNumber: string | null) => void;
-  addItem: (item: MenuItem, notes?: string) => void;
-  updateNotes: (cartItemId: string, notes: string) => void; // <-- New function for notes!
+  addItem: (item: MenuItem) => void; // Removed notes parameter
   removeItem: (cartItemId: string) => void;
   decreaseQuantity: (cartItemId: string) => void;
   clearCart: () => void;
@@ -30,10 +28,11 @@ export const useCart = create<CartStore>()(
       
       setActiveOrder: (orderNumber) => set({ activeOrderNumber: orderNumber }),
 
-      addItem: (item, notes = "") => {
+      addItem: (item) => {
         set((state) => {
+          // Check if this exact item is already in the cart (just by ID now)
           const existingItemIndex = state.items.findIndex(
-            (i) => i.id === item.id && i.notes === notes
+            (i) => i.id === item.id
           );
 
           if (existingItemIndex > -1) {
@@ -45,18 +44,10 @@ export const useCart = create<CartStore>()(
           return {
             items: [
               ...state.items,
-              { ...item, cartItemId: Math.random().toString(36).substring(2, 9), quantity: 1, notes }
+              { ...item, cartItemId: crypto.randomUUID(), quantity: 1 }
             ]
           };
         });
-      },
-
-      updateNotes: (cartItemId, notes) => {
-        set((state) => ({
-          items: state.items.map(item => 
-            item.cartItemId === cartItemId ? { ...item, notes } : item
-          )
-        }));
       },
 
       decreaseQuantity: (cartItemId) => {

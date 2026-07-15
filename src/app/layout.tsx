@@ -1,12 +1,9 @@
 // [Frontend - Customer] src/app/layout.tsx
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import QueryProvider from "@/providers/QueryProvider";
-import { LanguageProvider } from "@/providers/LanguageProvider"; // <-- Import the provider!
+import { LanguageProvider } from "@/providers/LanguageProvider";
 import { Toaster } from "sonner";
-
-const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Food Trailer Menu",
@@ -20,8 +17,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.className} bg-muted/20 text-slate-900`}>
-        {/* The Language Provider MUST wrap the Query Provider and children! */}
+      {/* Removed inter.className, Tailwind uses standard sans-serif by default! */}
+      <body className="font-sans antialiased bg-muted/20 text-slate-900">
         <LanguageProvider> 
           <QueryProvider>
             <div className="max-w-md mx-auto min-h-screen bg-background shadow-2xl relative">

@@ -1,7 +1,7 @@
 // [Frontend - Customer] src/components/order-tracker.tsx
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
@@ -11,11 +11,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChefHat, CheckCircle2, Loader2, Clock, XCircle, Banknote, ShieldCheck } from "lucide-react";
 
-export function OrderTracker() {
+function OrderTrackerContent() {
   const { activeOrderNumber, setActiveOrder } = useCart();
   const { t } = useLanguage();
   
-  // Hooks for the URL
   const searchParams = useSearchParams();
   const router = useRouter();
   const isStripeSuccess = searchParams.get("success") === "true";
@@ -92,7 +91,7 @@ export function OrderTracker() {
     );
   }
 
-  // DEFAULT STATE: PENDING (Order Received in kitchen queue)
+  // DEFAULT STATE: PENDING
   let bgColor = "bg-blue-400";
   let cardBg = "bg-blue-500";
   let icon = <Clock className="h-24 w-24 mx-auto mb-4 animate-pulse" />;
@@ -150,5 +149,17 @@ export function OrderTracker() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export function OrderTracker() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex flex-col items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    }>
+      <OrderTrackerContent />
+    </Suspense>
   );
 }

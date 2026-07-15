@@ -14,8 +14,10 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<Language>("ro"); // Let's default to Romanian for the customers!
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true); // App is safely mounted in browser
     const saved = localStorage.getItem("customer_lang") as Language;
     if (saved === "ro" || saved === "en") setLanguageState(saved);
   }, []);
@@ -28,6 +30,8 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   const t = translations[language];
 
+  if (!mounted) return null;
+  
   return (
     <LanguageContext.Provider value={{ language, toggleLanguage, t }}>
       {children}
