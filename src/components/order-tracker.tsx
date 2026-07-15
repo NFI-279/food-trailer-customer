@@ -1,7 +1,7 @@
 // [Frontend - Customer] src/components/order-tracker.tsx
 "use client";
 
-import { useEffect, Suspense } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
@@ -10,17 +10,19 @@ import { useLanguage } from "@/providers/LanguageProvider";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChefHat, CheckCircle2, Loader2, Clock, XCircle, Banknote, ShieldCheck } from "lucide-react";
+import { toast } from "sonner";
 
 function OrderTrackerContent() {
   const { activeOrderId, setActiveOrder } = useCart();
   const { t } = useLanguage();
+  const [isCanceling, setIsCanceling] = useState(false);
   
   const searchParams = useSearchParams();
   const router = useRouter();
   const isStripeSuccess = searchParams.get("success") === "true";
   const isStripeCanceled = searchParams.get("canceled") === "true";
 
-  const { data: order, isLoading } = useQuery({
+  const { data: order, isLoading, refetch } = useQuery({
     queryKey: ["order-status", activeOrderId],
     queryFn: () => api.getOrderStatus(activeOrderId!),
     enabled: !!activeOrderId,
@@ -30,14 +32,23 @@ function OrderTrackerContent() {
   const isReady = order?.status === "COMPLETED";
   const isCancelled = order?.status === "CANCELLED";
 
-  // EFFECT 1: Stripe Canceled cleanup
+  // EFFECT 1: Await Stripe Canceled cleanup properly!
   useEffect(() => {
-    if (isStripeCanceled && activeOrderId) {
-      api.cancelUnpaidOrder(activeOrderId).catch(console.error);
-      setActiveOrder(null);
-      router.replace("/");
-    }
-  }, [isStripeCanceled, activeOrderId, router, setActiveOrder]);
+    const handleCancel = async () => {
+      if (isStripeCanceled && activeOrderId && !isCanceling) {
+        setIsCanceling(true);
+        try {
+          await api.cancelUnpaidOrder(activeOrderId);
+        } catch (e) {
+          console.error("Failed to cancel ghost order:", e);
+        } finally {
+          setActiveOrder(null);
+          router.replace("/");
+        }
+      }
+    };
+    handleCancel();
+  }, [isStripeCanceled, activeOrderId, router, setActiveOrder, isCanceling]);
 
   // EFFECT 2: Stripe Success cleanup
   useEffect(() => {
@@ -46,20 +57,18 @@ function OrderTrackerContent() {
     }
   }, [isStripeSuccess, order, router]);
 
-  // EFFECT 3: Auto-clear finished orders after 15 minutes!
+  // EFFECT 3: Auto-clear finished orders after 15 minutes
   useEffect(() => {
     if ((isReady || isCancelled) && order?.updatedAt) {
       const completedTime = new Date(order.updatedAt).getTime();
       const now = new Date().getTime();
-      const minutesPassed = (now - completedTime) / (1000 * 60);
-      
-      if (minutesPassed > 15) {
+      if ((now - completedTime) / (1000 * 60) > 15) {
         setActiveOrder(null);
       }
     }
   }, [isReady, isCancelled, order?.updatedAt, setActiveOrder]);
 
-  if (isLoading || !order) {
+  if (isLoading || !order || isCanceling) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center space-y-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -68,7 +77,7 @@ function OrderTrackerContent() {
     );
   }
 
-  // --- METICULOUS UX: The Stripe "Verifying" State ---
+  // --- METICULOUS UX: Safe Verifying Screen with Retry ---
   if (order.status === "UNPAID" && isStripeSuccess) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-indigo-500 transition-colors duration-500">
@@ -82,16 +91,20 @@ function OrderTrackerContent() {
           <CardContent className="pt-8 pb-8 text-center space-y-4 bg-white">
             <h3 className="text-xl font-bold text-slate-800">Waiting for Bank...</h3>
             <p className="text-slate-500 font-medium">
-              Please do not close this screen. We are securely confirming your payment with Stripe.
+              We are confirming your payment with Stripe. This usually takes 5 seconds.
             </p>
             <Loader2 className="h-8 w-8 animate-spin mx-auto text-indigo-500 mt-4" />
+            
+            {/* SECURITY FIX: If Stripe hangs, let them manually refresh or contact support! */}
+            <Button variant="outline" className="w-full mt-6" onClick={() => refetch()}>
+              Refresh Status
+            </Button>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  // DEFAULT STATE: PENDING
   let bgColor = "bg-blue-400";
   let cardBg = "bg-blue-500";
   let icon = <Clock className="h-24 w-24 mx-auto mb-4 animate-pulse" />;
@@ -155,7 +168,7 @@ function OrderTrackerContent() {
 export function OrderTracker() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex flex-col items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     }>

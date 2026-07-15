@@ -27,7 +27,6 @@ export function CartSheet() {
       if (method === "CASH") setIsCashLoading(true);
       if (method === "CARD") setIsCardLoading(true);
 
-      // Cleaned up formatted items (NO MORE NOTES!)
       const formattedItems = items.map(item => ({
         name: item.name,
         quantity: item.quantity,
@@ -39,20 +38,24 @@ export function CartSheet() {
         paymentMethod: method, 
       });
 
-      setActiveOrder(order.id);
-      clearCart();
-
       if (method === "CASH") {
+        setActiveOrder(order.id);
+        clearCart();
         toast.success(`${t.cart.success} #${order.orderNumber}`);
         setIsOpen(false);
       } else {
         toast.loading(t.cart.redirecting);
+        // SECURITY FIX: Fetch the Stripe URL BEFORE clearing the cart!
+        // If Stripe is down, the error is caught, and the customer's cart is perfectly safe.
         const { url } = await api.getStripeUrl(order.id);
+        
+        setActiveOrder(order.id);
+        clearCart();
         window.location.href = url; 
       }
 
     } catch (error: any) {
-      toast.error(error.message);
+      toast.error(error.message || "Checkout failed");
     } finally {
       setIsCashLoading(false);
       setIsCardLoading(false);
