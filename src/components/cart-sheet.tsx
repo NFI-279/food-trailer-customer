@@ -7,7 +7,7 @@ import { useLanguage } from "@/providers/LanguageProvider";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ShoppingBag, Minus, Plus, Trash2, Loader2, CreditCard, Banknote } from "lucide-react"; // <-- Added Icons
+import { ShoppingBag, Minus, Plus, Trash2, Loader2, CreditCard, Banknote } from "lucide-react"; 
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 
@@ -16,7 +16,6 @@ export function CartSheet() {
   const { t } = useLanguage(); 
   const [isOpen, setIsOpen] = useState(false);
   
-  // Separate loading states for the two buttons
   const [isCashLoading, setIsCashLoading] = useState(false);
   const [isCardLoading, setIsCardLoading] = useState(false);
 
@@ -28,13 +27,12 @@ export function CartSheet() {
       if (method === "CASH") setIsCashLoading(true);
       if (method === "CARD") setIsCardLoading(true);
 
+      // Cleaned up formatted items (NO MORE NOTES!)
       const formattedItems = items.map(item => ({
         name: item.name,
         quantity: item.quantity,
-        notes: item.notes || undefined,
       }));
 
-      // 1. Create the order in the database (It goes to UNPAID)
       const order = await api.placeOrder({
         orderNumber: "GENERATED_BY_BACKEND", 
         totalAmount: totalPrice,
@@ -42,19 +40,16 @@ export function CartSheet() {
         paymentMethod: method, 
       });
 
-      // 2. Clear the cart and set the active order in Zustand
       setActiveOrder(order.orderNumber);
       clearCart();
 
-      // 3. Route the customer based on their choice!
       if (method === "CASH") {
         toast.success(`${t.cart.success} #${order.orderNumber}`);
         setIsOpen(false);
       } else {
         toast.loading(t.cart.redirecting);
-        // Ask the backend for the Stripe URL, and pass the current website URL so Stripe knows where to send them back!
         const { url } = await api.getStripeUrl(order.id);
-        window.location.href = url; // Redirect the browser to Stripe!
+        window.location.href = url; 
       }
 
     } catch (error: any) {
@@ -97,21 +92,28 @@ export function CartSheet() {
                   <span>{item.name}</span>
                   <span>{(item.price * item.quantity).toFixed(2)} RON</span>
                 </div>
-                {item.notes && <p className="text-sm text-muted-foreground italic -mt-1">{t.cart.note} {item.notes}</p>}
+                
+                {/* REMOVED NOTES UI HERE */}
+                
                 <div className="flex items-center gap-4 mt-2">
                   <div className="flex items-center border rounded-full bg-muted/50">
-                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={() => decreaseQuantity(item.cartItemId)}><Minus className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={() => decreaseQuantity(item.cartItemId)}>
+                      <Minus className="h-4 w-4" />
+                    </Button>
                     <span className="w-8 text-center font-bold">{item.quantity}</span>
-                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={() => addItem(item)}><Plus className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full" onClick={() => addItem(item)}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-destructive ml-auto" onClick={() => removeItem(item.cartItemId)}><Trash2 className="h-5 w-5" /></Button>
+                  <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-destructive ml-auto" onClick={() => removeItem(item.cartItemId)}>
+                    <Trash2 className="h-5 w-5" />
+                  </Button>
                 </div>
               </div>
             ))}
           </div>
         </ScrollArea>
 
-        {/* CHECKOUT SECTION - TWO BUTTONS NOW! */}
         <div className="p-6 border-t bg-muted/10 pb-10">
           <div className="flex justify-between items-center mb-6 text-xl font-black">
             <span>{t.cart.total}</span>
