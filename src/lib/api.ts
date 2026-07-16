@@ -13,7 +13,7 @@ export const api = {
   },
 
   // 2. Place Order
-  placeOrder: async (orderData: any) => {
+  placeOrder: async (orderData: unknown) => {
     const res = await fetch(`${API_URL}/orders`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
