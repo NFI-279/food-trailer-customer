@@ -9,10 +9,26 @@ import { useCart } from "@/store/cart";
 import { useLanguage } from "@/providers/LanguageProvider";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { UtensilsCrossed, Globe, Loader2 } from "lucide-react";
+import { UtensilsCrossed, Globe, Loader2, Flame, Utensils, Coffee, IceCream } from "lucide-react";
 import { toast } from "sonner";
 import { CartSheet } from "@/components/cart-sheet";
 import { OrderTracker } from "@/components/order-tracker";
+
+// Helper to choose the right icon and color based on category
+function getCategoryVisuals(category: string) {
+  switch (category) {
+    case "Grill":
+      return { icon: Flame, bg: "bg-gradient-to-br from-orange-100 to-orange-200", text: "text-orange-600" };
+    case "Sides":
+      return { icon: Utensils, bg: "bg-gradient-to-br from-amber-100 to-yellow-200", text: "text-amber-600" };
+    case "Drinks":
+      return { icon: Coffee, bg: "bg-gradient-to-br from-blue-100 to-cyan-200", text: "text-blue-600" };
+    case "Desserts":
+      return { icon: IceCream, bg: "bg-gradient-to-br from-pink-100 to-rose-200", text: "text-pink-600" };
+    default:
+      return { icon: UtensilsCrossed, bg: "bg-slate-100", text: "text-slate-400" };
+  }
+}
 
 function MobileMenuContent() {
   const { addItem, activeOrderId, setActiveOrder } = useCart();
@@ -20,7 +36,6 @@ function MobileMenuContent() {
   const [mounted, setMounted] = useState(false);
   const searchParams = useSearchParams();
 
-  // SECURITY FIX: Recover lost Stripe orders from the URL!
   useEffect(() => {
     setMounted(true);
     const urlOrderId = searchParams.get("orderId");
@@ -40,7 +55,6 @@ function MobileMenuContent() {
     refetchInterval: 3000, 
   });
 
-  // HYDRATION FIX: Do not render UI until Zustand is mounted in the browser
   if (!mounted) return null;
 
   if (activeOrderId) {
@@ -120,12 +134,26 @@ function MobileMenuContent() {
                 {translatedCategory}
               </h2>
               <div className="grid gap-3">
-                {itemsInCategory.map(item => (
+                {itemsInCategory.map(item => {
+                  
+                  // GET THE SMART VISUALS!
+                  const visuals = getCategoryVisuals(item.category);
+                  const Icon = visuals.icon;
+
+                  return (
                   <Card key={item.id} className="overflow-hidden border-slate-200 shadow-sm">
                     <CardContent className={`p-0 flex h-28 ${!item.isAvailable ? "opacity-60 grayscale" : ""}`}>
-                      <div className="w-28 bg-slate-100 shrink-0 flex items-center justify-center border-r">
-                        <UtensilsCrossed className="h-8 w-8 text-slate-300" />
+                      
+                      {/* --- FIXED: RENDER THE IMAGE IF IT EXISTS! --- */}
+                      <div className={`w-28 shrink-0 flex items-center justify-center border-r ${visuals.bg}`}>
+                        {item.imageUrl && item.imageUrl.trim() !== "" ? (
+                          <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <Icon className={`h-10 w-10 ${visuals.text} opacity-70`} />
+                        )}
                       </div>
+                      {/* --------------------------------------------- */}
+
                       <div className="flex-1 p-3 flex flex-col justify-between">
                         <div>
                           <h3 className="font-bold leading-tight">{item.name}</h3>
@@ -153,7 +181,7 @@ function MobileMenuContent() {
                       </div>
                     </CardContent>
                   </Card>
-                ))}
+                )})}
               </div>
             </div>
           );
@@ -165,7 +193,6 @@ function MobileMenuContent() {
   );
 }
 
-// Next.js Suspense boundary for useSearchParams!
 export default function MobileMenu() {
   return (
     <Suspense fallback={
