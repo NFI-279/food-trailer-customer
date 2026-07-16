@@ -54,8 +54,12 @@ export function CartSheet() {
         window.location.href = url; 
       }
 
-    } catch (error: any) {
-      toast.error(error.message || "Checkout failed");
+    } catch (error) {
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Checkout failed");
+      }
     } finally {
       setIsCashLoading(false);
       setIsCardLoading(false);
