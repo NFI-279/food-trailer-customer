@@ -10,12 +10,13 @@ import { useLanguage } from "@/providers/LanguageProvider";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChefHat, CheckCircle2, Loader2, Clock, XCircle, Banknote, ShieldCheck } from "lucide-react";
-import { toast } from "sonner";
+// LINT FIX: Removed unused 'toast' import!
 
 function OrderTrackerContent() {
   const { activeOrderId, setActiveOrder } = useCart();
   const { t } = useLanguage();
   const [isCanceling, setIsCanceling] = useState(false);
+  const [isTimeout, setIsTimeout] = useState(false); // <-- NEW: Stripe Timeout State
   
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -32,7 +33,7 @@ function OrderTrackerContent() {
   const isReady = order?.status === "COMPLETED";
   const isCancelled = order?.status === "CANCELLED";
 
-  // EFFECT 1: Await Stripe Canceled cleanup properly!
+  // EFFECT: Stripe Canceled cleanup
   useEffect(() => {
     const handleCancel = async () => {
       if (isStripeCanceled && activeOrderId && !isCanceling) {
@@ -50,14 +51,14 @@ function OrderTrackerContent() {
     handleCancel();
   }, [isStripeCanceled, activeOrderId, router, setActiveOrder, isCanceling]);
 
-  // EFFECT 2: Stripe Success cleanup
+  // EFFECT: Stripe Success cleanup
   useEffect(() => {
     if (isStripeSuccess && order && order.status !== "UNPAID") {
       router.replace("/"); 
     }
   }, [isStripeSuccess, order, router]);
 
-  // EFFECT 3: Auto-clear finished orders after 15 minutes
+  // EFFECT: Auto-clear finished orders after 15 minutes
   useEffect(() => {
     if ((isReady || isCancelled) && order?.updatedAt) {
       const completedTime = new Date(order.updatedAt).getTime();
@@ -68,6 +69,14 @@ function OrderTrackerContent() {
     }
   }, [isReady, isCancelled, order?.updatedAt, setActiveOrder]);
 
+  // EFFECT: Stripe Timeout Escape Hatch (15 seconds)
+  useEffect(() => {
+    if (order?.status === "UNPAID" && isStripeSuccess) {
+      const timer = setTimeout(() => setIsTimeout(true), 15000);
+      return () => clearTimeout(timer);
+    }
+  }, [order?.status, isStripeSuccess]);
+
   if (isLoading || !order || isCanceling) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center space-y-4">
@@ -77,25 +86,30 @@ function OrderTrackerContent() {
     );
   }
 
-  // --- METICULOUS UX: Safe Verifying Screen with Retry ---
+  // --- STRIPE VERIFYING STATE ---
   if (order.status === "UNPAID" && isStripeSuccess) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-indigo-500 transition-colors duration-500">
         <Card className="w-full max-w-sm shadow-2xl border-none overflow-hidden">
           <div className="py-12 text-center text-white bg-indigo-600">
             <ShieldCheck className="h-24 w-24 mx-auto mb-4 animate-pulse" />
-            <h2 className="text-2xl font-black uppercase tracking-widest">
-              Verifying Payment
-            </h2>
+            <h2 className="text-2xl font-black uppercase tracking-widest">Verifying Payment</h2>
           </div>
           <CardContent className="pt-8 pb-8 text-center space-y-4 bg-white">
             <h3 className="text-xl font-bold text-slate-800">Waiting for Bank...</h3>
-            <p className="text-slate-500 font-medium">
-              We are confirming your payment with Stripe. This usually takes 5 seconds.
-            </p>
-            <Loader2 className="h-8 w-8 animate-spin mx-auto text-indigo-500 mt-4" />
             
-            {/* SECURITY FIX: If Stripe hangs, let them manually refresh or contact support! */}
+            {/* NEW: If it takes too long, show the escape hatch message! */}
+            {isTimeout ? (
+              <div className="bg-amber-100 text-amber-800 p-4 rounded-xl text-sm font-bold">
+                Verification is taking longer than usual. Please do NOT pay again. Show this screen to the staff!
+              </div>
+            ) : (
+              <p className="text-slate-500 font-medium">
+                Please do not close this screen. We are securely confirming your payment with Stripe.
+              </p>
+            )}
+
+            <Loader2 className="h-8 w-8 animate-spin mx-auto text-indigo-500 mt-4" />
             <Button variant="outline" className="w-full mt-6" onClick={() => refetch()}>
               Refresh Status
             </Button>
@@ -105,6 +119,7 @@ function OrderTrackerContent() {
     );
   }
 
+  // DEFAULT STATE: PENDING
   let bgColor = "bg-blue-400";
   let cardBg = "bg-blue-500";
   let icon = <Clock className="h-24 w-24 mx-auto mb-4 animate-pulse" />;
