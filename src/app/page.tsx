@@ -188,7 +188,7 @@ function MobileMenuContent() {
         })}
       </div>
 
-      <CartSheet />
+      {!isClosed && <CartSheet />}
     </div>
   );
 }
