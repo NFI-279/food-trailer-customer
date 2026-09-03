@@ -3,6 +3,7 @@ import { MenuItem } from "@/types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
+
 export const api = {
   // 1. Fetch Menu
   getMenu: async (): Promise<MenuItem[]> => {
