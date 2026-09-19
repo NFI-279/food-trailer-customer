@@ -39,7 +39,7 @@ export function CartSheet() {
       });
 
       if (method === "CASH") {
-        setActiveOrder(order.id);
+        setActiveOrder(order.id, order.customerAccessToken);
         clearCart();
         toast.success(`${t.cart.success} #${order.orderNumber}`);
         setIsOpen(false);
@@ -47,11 +47,11 @@ export function CartSheet() {
         toast.loading(t.cart.redirecting);
         // SECURITY FIX: Fetch the Stripe URL BEFORE clearing the cart!
         // If Stripe is down, the error is caught, and the customer's cart is perfectly safe.
-        const { url } = await api.getStripeUrl(order.id);
+        const { url } = await api.getStripeUrl(order.id, order.customerAccessToken);
         
-        setActiveOrder(order.id);
+        setActiveOrder(order.id, order.customerAccessToken);
         clearCart();
-        window.location.href = url; 
+        window.location.assign(url);
       }
 
     } catch (error) {
@@ -70,11 +70,12 @@ export function CartSheet() {
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
-      <div className="fixed bottom-0 left-0 right-0 p-4 z-50 bg-background/80 backdrop-blur-md border-t md:max-w-md md:mx-auto">
+      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border/80 bg-background/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md sm:p-4">
+        <div className="mx-auto max-w-6xl">
         <SheetTrigger 
           render={
-            <Button className="w-full h-14 text-lg font-bold flex items-center justify-between px-6 shadow-xl rounded-2xl">
-              <div className="flex items-center bg-primary-foreground/20 px-3 py-1 rounded-full">
+            <Button className="h-14 w-full rounded-2xl px-4 text-base font-bold shadow-xl sm:px-6 sm:text-lg">
+              <div className="flex items-center rounded-full bg-primary-foreground/20 px-3 py-1">
                 <ShoppingBag className="h-5 w-5 mr-2" />
                 <span>{totalItems}</span>
               </div>
@@ -83,20 +84,21 @@ export function CartSheet() {
             </Button>
           }
         />
+        </div>
       </div>
 
-      <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl md:max-w-md md:mx-auto flex flex-col p-0">
-        <SheetHeader className="p-6 border-b text-left">
+      <SheetContent side="bottom" className="mx-auto flex h-[min(88vh,720px)] w-full max-w-2xl flex-col rounded-t-3xl p-0">
+        <SheetHeader className="border-b p-5 text-left sm:p-6">
           <SheetTitle className="text-2xl font-black">{t.cart.yourOrder}</SheetTitle>
         </SheetHeader>
 
-        <ScrollArea className="flex-1 p-6">
+        <ScrollArea className="flex-1 p-5 sm:p-6">
           <div className="space-y-6">
             {items.map((item) => (
               <div key={item.cartItemId} className="flex flex-col gap-2">
-                <div className="flex justify-between items-start font-bold text-lg">
-                  <span>{item.name}</span>
-                  <span>{(item.price * item.quantity).toFixed(2)} RON</span>
+                <div className="flex items-start justify-between gap-4 font-bold text-lg">
+                  <span className="min-w-0 break-words">{item.name}</span>
+                  <span className="shrink-0">{(item.price * item.quantity).toFixed(2)} RON</span>
                 </div>
                 
                 {/* REMOVED NOTES UI HERE */}
@@ -120,16 +122,16 @@ export function CartSheet() {
           </div>
         </ScrollArea>
 
-        <div className="p-6 border-t bg-muted/10 pb-10">
+        <div className="border-t bg-muted/10 p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:p-6">
           <div className="flex justify-between items-center mb-6 text-xl font-black">
             <span>{t.cart.total}</span>
             <span>{totalPrice.toFixed(2)} RON</span>
           </div>
           
-          <div className="flex gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <Button 
               variant="outline"
-              className="flex-1 h-14 text-base font-bold rounded-2xl border-2" 
+              className="h-14 flex-1 rounded-2xl border-2 border-border text-base font-bold"
               onClick={() => handleCheckout("CASH")}
               disabled={isCashLoading || isCardLoading}
             >
@@ -138,7 +140,7 @@ export function CartSheet() {
             </Button>
             
             <Button 
-              className="flex-1 h-14 text-base font-bold rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white" 
+              className="h-14 flex-1 rounded-2xl bg-accent text-base font-bold text-accent-foreground hover:bg-accent/90"
               onClick={() => handleCheckout("CARD")}
               disabled={isCashLoading || isCardLoading}
             >

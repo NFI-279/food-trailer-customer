@@ -18,10 +18,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       {/* Removed inter.className, Tailwind uses standard sans-serif by default! */}
-      <body className="font-sans antialiased bg-muted/20 text-slate-900">
+      <body className="bg-muted/20 font-sans antialiased text-foreground">
         <LanguageProvider> 
           <QueryProvider>
-            <div className="max-w-md mx-auto min-h-screen bg-background shadow-2xl relative">
+            <div className="relative mx-auto min-h-screen w-full max-w-[1440px] bg-background shadow-2xl">
               {children}
             </div>
           </QueryProvider>
