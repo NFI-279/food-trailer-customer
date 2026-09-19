@@ -15,6 +15,7 @@ export const translations = {
       add: "+ Add",
       added: "added to cart!",
       failed: "Failed to load menu.",
+      empty: "The menu is currently empty.",
       soldOut: "SOLD OUT",
     },
     cart: {
@@ -58,6 +59,7 @@ export const translations = {
       add: "+ Adaugă",
       added: "adăugat în coș!",
       failed: "Nu am putut încărca meniul.",
+      empty: "Meniul este momentan gol.",
        soldOut: "STOC EPUIZAT", // <-- ADD THIS
     },
     cart: {

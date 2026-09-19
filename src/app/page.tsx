@@ -9,7 +9,7 @@ import { useCart } from "@/store/cart";
 import { useLanguage } from "@/providers/LanguageProvider";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { UtensilsCrossed, Globe, Loader2, Flame, Utensils, Coffee, IceCream } from "lucide-react";
+import { UtensilsCrossed, Globe, Loader2, Flame, Utensils, Coffee, IceCream, ImageOff } from "lucide-react";
 import { toast } from "sonner";
 import { CartSheet } from "@/components/cart-sheet";
 import { OrderTracker } from "@/components/order-tracker";
@@ -18,16 +18,57 @@ import { OrderTracker } from "@/components/order-tracker";
 function getCategoryVisuals(category: string) {
   switch (category) {
     case "Grill":
-      return { icon: Flame, bg: "bg-gradient-to-br from-orange-100 to-orange-200", text: "text-orange-600" };
+      return { icon: Flame, bg: "bg-gradient-to-br from-secondary to-muted", text: "text-accent" };
     case "Sides":
-      return { icon: Utensils, bg: "bg-gradient-to-br from-amber-100 to-yellow-200", text: "text-amber-600" };
+      return { icon: Utensils, bg: "bg-gradient-to-br from-muted to-secondary", text: "text-accent" };
     case "Drinks":
-      return { icon: Coffee, bg: "bg-gradient-to-br from-blue-100 to-cyan-200", text: "text-blue-600" };
+      return { icon: Coffee, bg: "bg-gradient-to-br from-muted to-card", text: "text-primary" };
     case "Desserts":
-      return { icon: IceCream, bg: "bg-gradient-to-br from-pink-100 to-rose-200", text: "text-pink-600" };
+      return { icon: IceCream, bg: "bg-gradient-to-br from-secondary to-card", text: "text-accent" };
     default:
       return { icon: UtensilsCrossed, bg: "bg-slate-100", text: "text-slate-400" };
   }
+}
+
+function getSafeImageUrl(value: string | undefined) {
+  if (!value?.trim()) return null;
+  try {
+    const url = new URL(value, window.location.origin);
+    const approvedOrigins = [
+      new URL(process.env.NEXT_PUBLIC_API_URL || window.location.origin).origin,
+      ...(process.env.NEXT_PUBLIC_IMAGE_ORIGINS || "").split(",").map(origin => origin.trim()).filter(Boolean),
+    ];
+    if ((url.protocol === "https:" || approvedOrigins.includes(url.origin)) && approvedOrigins.includes(url.origin)) {
+      return url.toString();
+    }
+    if (url.origin === window.location.origin && value.startsWith("/")) return url.toString();
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function MenuImage({ src, alt, visuals }: { src: string | undefined; alt: string; visuals: ReturnType<typeof getCategoryVisuals> }) {
+  const [hasFailed, setHasFailed] = useState(false);
+  const imageUrl = getSafeImageUrl(src);
+  const Icon = visuals.icon;
+
+  if (!imageUrl || hasFailed) {
+    return (
+      <div className={`flex h-full w-full items-center justify-center ${visuals.bg}`} aria-label={`${alt} image unavailable`}>
+        {hasFailed ? <ImageOff className={`h-8 w-8 ${visuals.text} opacity-60`} /> : <Icon className={`h-10 w-10 ${visuals.text} opacity-70`} />}
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={imageUrl}
+      alt={alt}
+      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+      onError={() => setHasFailed(true)}
+    />
+  );
 }
 
 function MobileMenuContent() {
@@ -72,6 +113,9 @@ function MobileMenuContent() {
   if (isError || !menu) {
     return <div className="p-8 text-center text-red-500 font-bold">{t.menu.failed}</div>;
   }
+  if (menu.length === 0) {
+    return <div className="p-8 text-center text-muted-foreground font-bold">{t.menu.empty}</div>;
+  }
 
   const isClosed = settings && !settings.isAcceptingOrders;
   const categories = ["Grill", "Sides", "Drinks", "Desserts"];
@@ -79,21 +123,21 @@ function MobileMenuContent() {
   return (
     <div className="pb-28">
       {/* HEADER */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-md border-b">
-        <header className="px-4 py-4 flex items-center justify-between">
+      <div className="sticky top-0 z-10 border-b border-border/80 bg-background/95 backdrop-blur-md">
+        <header className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 bg-primary rounded-full flex items-center justify-center">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary shadow-sm">
               <UtensilsCrossed className="h-4 w-4 text-primary-foreground" />
             </div>
-            <h1 className="font-black text-xl tracking-tight">{t.header}</h1>
+            <h1 className="text-xl font-black tracking-tight text-foreground">{t.header}</h1>
           </div>
-          <div onClick={toggleLanguage} className="h-10 px-3 flex items-center justify-center gap-1.5 border rounded-full cursor-pointer hover:bg-muted transition-colors">
-            <Globe className="h-4 w-4 text-slate-600" />
-            <span className="text-xs font-bold uppercase text-slate-600">{language}</span>
-          </div>
+          <button type="button" onClick={toggleLanguage} className="flex h-10 items-center justify-center gap-1.5 rounded-full border border-border bg-card px-3 shadow-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <Globe className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs font-bold uppercase text-muted-foreground">{language}</span>
+          </button>
         </header>
 
-        <div className="flex overflow-x-auto gap-2 px-4 pb-3 pt-1 [&::-webkit-scrollbar]:hidden">
+        <nav className="mx-auto flex w-full max-w-7xl gap-2 overflow-x-auto px-4 pb-3 pt-1 sm:px-6 lg:px-8 [&::-webkit-scrollbar]:hidden" aria-label="Menu categories">
           {categories.map(cat => {
             const translatedCat = t.categories[cat as keyof typeof t.categories] || cat;
             return (
@@ -106,76 +150,72 @@ function MobileMenuContent() {
                     window.scrollTo({ top: y, behavior: 'smooth' });
                   }
                 }}
-                className="whitespace-nowrap bg-muted hover:bg-slate-200 text-slate-800 px-4 py-1.5 rounded-full text-sm font-bold cursor-pointer transition-colors"
+                className="whitespace-nowrap rounded-full border border-border bg-card px-4 py-2 text-sm font-bold text-foreground shadow-sm transition-colors hover:border-accent hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 {translatedCat}
               </div>
             );
           })}
-        </div>
+        </nav>
       </div>
 
       {isClosed && (
-        <div className="bg-destructive text-destructive-foreground p-3 text-center font-bold text-sm shadow-sm">
+        <div className="bg-destructive p-3 text-center text-sm font-bold text-destructive-foreground shadow-sm">
           {language === "ro" ? "Rulota este momentan ÎNCHISĂ." : "The trailer is currently CLOSED."}
         </div>
       )}
 
       {/* MENU LIST */}
-      <div className="p-4 space-y-8">
+      <main className="mx-auto w-full max-w-7xl space-y-10 p-4 pb-32 sm:p-6 lg:p-8">
         {categories.map(category => {
           const itemsInCategory = menu.filter(item => item.category === category);
           if (itemsInCategory.length === 0) return null;
           const translatedCategory = t.categories[category as keyof typeof t.categories] || category;
 
           return (
-            <div key={category} id={`category-${category}`} className="space-y-3">
-              <h2 className="text-xl font-black uppercase tracking-widest text-slate-800 border-b pb-1">
+            <section key={category} id={`category-${category}`} className="scroll-mt-36 space-y-4">
+              <div className="flex items-end justify-between border-b border-border pb-2">
+                <h2 className="text-xl font-black uppercase tracking-widest text-foreground">
                 {translatedCategory}
-              </h2>
-              <div className="grid gap-3">
+                </h2>
+                <span className="text-xs font-semibold text-muted-foreground">{itemsInCategory.length} items</span>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
                 {itemsInCategory.map(item => {
                   
                   // GET THE SMART VISUALS!
                   const visuals = getCategoryVisuals(item.category);
-                  const Icon = visuals.icon;
 
                   return (
-                  <Card key={item.id} className="overflow-hidden border-slate-200 shadow-sm">
-                    <CardContent className={`p-0 flex h-28 ${!item.isAvailable ? "opacity-60 grayscale" : ""}`}>
-                      
-                      {/* --- FIXED: RENDER THE IMAGE IF IT EXISTS! --- */}
-                      <div className={`w-28 shrink-0 flex items-center justify-center border-r ${visuals.bg}`}>
-                        {item.imageUrl && item.imageUrl.trim() !== "" ? (
-                          <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <Icon className={`h-10 w-10 ${visuals.text} opacity-70`} />
-                        )}
+                  <Card key={item.id} className={`group flex h-full overflow-hidden border-border/80 shadow-sm transition-shadow hover:shadow-md ${!item.isAvailable ? "opacity-60 grayscale" : ""}`}>
+                    <CardContent className="flex h-full flex-col p-0">
+                      <div className={`h-40 w-full shrink-0 overflow-hidden border-b ${visuals.bg} sm:h-44`}>
+                        <MenuImage src={item.imageUrl} alt={item.name} visuals={visuals} />
                       </div>
-                      {/* --------------------------------------------- */}
-
-                      <div className="flex-1 p-3 flex flex-col justify-between">
-                        <div>
-                          <h3 className="font-bold leading-tight">{item.name}</h3>
-                          {item.description && <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{item.description}</p>}
+                      <div className="flex flex-1 flex-col justify-between gap-4 p-4">
+                        <div className="space-y-1">
+                          <h3 className="text-base font-bold leading-tight">{item.name}</h3>
+                          {item.description && <p className="line-clamp-2 text-sm text-muted-foreground">{item.description}</p>}
                         </div>
-                        <div className="flex items-center justify-between mt-1">
-                          <span className="font-black text-primary">{item.price.toFixed(2)} RON</span>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="shrink-0 font-black text-primary">{item.price.toFixed(2)} RON</span>
                           {item.isAvailable ? (
-                            <div 
-                              className={`${isClosed ? "bg-muted text-muted-foreground cursor-not-allowed" : "bg-secondary text-secondary-foreground hover:bg-primary hover:text-primary-foreground cursor-pointer"} font-bold transition-colors py-1.5 px-4 rounded-full text-sm`}
+                            <button
+                              type="button"
+                              disabled={isClosed}
                               onClick={() => {
                                 if (isClosed) return; 
                                 addItem(item);
                                 toast.success(`${item.name} ${t.menu.added}`);
                               }}
+                              className={`${isClosed ? "cursor-not-allowed bg-muted text-muted-foreground" : "bg-secondary text-secondary-foreground hover:bg-primary hover:text-primary-foreground"} min-h-11 rounded-full px-4 text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
                             >
                               {t.menu.add}
-                            </div>
+                            </button>
                           ) : (
-                            <div className="bg-destructive text-destructive-foreground font-bold py-1.5 px-3 rounded-full text-xs">
+                            <span className="rounded-full bg-destructive px-3 py-2 text-xs font-bold text-destructive-foreground">
                               {t.menu.soldOut}
-                            </div>
+                            </span>
                           )}
                         </div>
                       </div>
@@ -183,10 +223,10 @@ function MobileMenuContent() {
                   </Card>
                 )})}
               </div>
-            </div>
+            </section>
           );
         })}
-      </div>
+      </main>
 
       {!isClosed && <CartSheet />}
     </div>
